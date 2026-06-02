@@ -1,0 +1,759 @@
+---
+title: "Mall Customer Segmentation"
+output:
+  html_document:
+    latex_engine: xelatex
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{Yarmouk_University_logo}
+\end{figure}
+
+# Department of Statistics
+
+# Subject: Cluster Analysis
+
+# Students Names:
+ 
+ * Hotheifa Mohammad Al-3Assi 2021057039
+ 
+ * Omar khaled Smadi          2021057241
+ 
+ * Hotheifa Mahmoud Nzazleh   2021057204
+
+ * Mohammad Majed Nassireh    2019057195
+
+# Supervisor Name: Dr.Aymen Al-Rawashdeh
+
+# Submission Date: 6-1-2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+# Cluster analysis:
+is a data analysis technique that groups similar data points into "clusters," where items within a cluster are more alike to each other than to items in other clusters, helping discover natural groupings in data without prior labels (unsupervised learning). It's used in fields like marketing (customer segmentation) or healthcare (patient grouping) to find patterns, understand relationships, and simplify complex data sets by highlighting similarities and differences.
+
+# How it works:
+* Finds natural groups: It identifies inherent structures within data, like grouping customers  by buying habits or patients by symptoms.
+* Measures similarity: It uses criteria like distance, density, or statistical distributions to determine how alike data points are.
+* Unsupervised learning: Since it doesn't use predefined categories, it's great for exploring data and discovering new insights. 
+
+# Key characteristics:
+* High intra-cluster similarity: Objects within the same cluster are very similar.
+* Low inter-cluster similarity: Objects in different clusters are dissimilar. 
+
+# Common methods:
+* K-Means Clustering: Divides data into a pre-specified number (k) of clusters.
+* Hierarchical Clustering: Creates a tree-like hierarchy of clusters, useful for seeing      relationships at different levels. 
+
+# About This Data:
+* This data set contains customer data that can be used for segmentation analysis. It includes   demographic and behavioral information about customers, which can help in identifying         distinct segments within the customer base. This can be particularly useful for targeted      marketing strategies, improving customer satisfaction, and increasing sales.
+
+# we will use a cluster analysis for this data, by applying k-means methods:
+
+* K-Means Clustering  Method:
+    * K-means clustering (Mac Queen, 1967) is the most commonly used unsupervised                           machine learning algorithm for partitioning a given data set into a set of k clusters.
+    * k represents the number of clusters pre-specified by the analyst
+    *	It classifies such that objects within the same cluster are as similar as possible                   (i.e., high intra-class similarity), whereas objects from different clusters are as                    dissimilar as possible.
+
+  
+  
+\newpage
+#  The Data View:
+
+* our Data is very large so, we will view the first Ten rows and the last Ten rows.
+
+```{r echo=FALSE}
+mall_data=read.csv(file = "customer_segmentation_data.csv",header = TRUE,sep=",")
+ 
+```
+
+* The first Ten rows :
+```{r echo=FALSE}
+library(knitr)
+kable(mall_data[1:10,],caption = " Mall Customer Segmentation",col.names = c("id","age","Gender","Income","Spending Score","Membership years","Purchase frequency","Preferred category","Last purchase amount"))
+       
+
+```
+ 
+
+
+
+
+* The last Ten rows:
+
+
+
+```{r echo=FALSE}
+library(knitr)
+kable(mall_data[990:1000,],caption = " Mall Customer Segmentation",
+col.names = c("id","age","Gender","Income","Spending Score","Membership years","	Purchase frequency","Preferred category","Last purchase amount"),row.names = FALSE)
+
+```
+
+
+\newpage
+
+# Variable type & Summary: 
+* Dimension for Data:
+
+```{r echo=FALSE}
+dim_table <- data.frame(Dimension = c("Number of Rows", "Number of Columns"),Value = dim(mall_data))
+
+kable(dim_table,caption = "Dimensions of the Dataset")
+ 
+```
+The table shows that the number of data (rows) = 1000, and the number of variables (columns) = 9
+We excluded the first column (Id) because it only represents the person*.
+
+* Variable Type:
+
+```{r echo=FALSE}
+library(knitr)
+
+
+str_table <- data.frame(
+  Variable = names(mall_data),
+  Type = sapply(mall_data, class),
+  Example = sapply(mall_data, function(x) {
+    vals <- x[!is.na(x)]    
+    vals <- head(vals, 4)     
+    paste(as.character(vals), collapse = ", ")
+  }),
+  row.names = NULL
+)
+
+
+kable(
+  str_table,
+  caption = "Structure of the Dataset"
+)
+```
+
+* Summary of Quanitative Variable: 
+
+```{r echo=FALSE}
+qdata=mall_data[,c("age","income","spending_score","membership_years","purchase_frequency","last_purchase_amount")]
+library(knitr)
+summary_table <- as.data.frame(do.call(cbind, lapply(qdata, summary)))
+kable(summary_table,caption = "Summary of Quanitative Variable",col.names = c("Age","Income","Spending Score","Membership Years","Purchase frequency","last Purchase Amount"))
+```
+\newpage
+
+* Summary For Qualitative Variable:
+```{r echo=FALSE}
+library(knitr)
+counts = table(mall_data$gender)
+n = sum(counts)
+gender_table = data.frame(
+  Gender = names(counts),
+  Frequency = as.vector(counts),
+  Percentage = round(as.vector(counts) / n * 100, 1))
+kable(gender_table,caption = "Summary of Gender")
+
+```
+
+```{r echo=FALSE}
+library(knitr)
+counts = table(mall_data$preferred_category)
+n = sum(counts)
+gender_table = data.frame(
+  preferred_category = names(counts),
+  Frequency = as.vector(counts),
+  Percentage = round(as.vector(counts) / n * 100, 1))
+kable(gender_table,caption = "Summary of Preferred Category ")
+```
+
+
+
+
+
+# Plot for the Quntitative Variable: 
+
+ * Boxplots: 
+
+
+
+
+```{r echo=FALSE, fig.height=3, fig.show='hold', fig.width=3, out.width="35%"}
+library(ggplot2)
+ggplot(mall_data,aes(y=age))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+###################
+ggplot(mall_data,aes(y=income))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+####################
+ggplot(mall_data,aes(y=spending_score))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+###################
+ggplot(mall_data,aes(y=purchase_frequency))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+###################
+ggplot(mall_data,aes(y=membership_years))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+###################
+ggplot(mall_data,aes(y=last_purchase_amount))+
+  stat_boxplot(geom = "errorbar",width=0.5)+
+  geom_boxplot(fill="skyblue",outlier.shape = 8)
+```
+
+
+
+
+
+
+\newpage
+
+* Histogram plots:
+
+
+
+```{r echo=FALSE, fig.height=7, fig.show='hold', fig.width=9, out.width="50%"}
+hist(mall_data$age,breaks = 30,col="pink",freq = FALSE,xlab = "Age",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$age),sd=sd(mall_data$age)),add = TRUE,col="#6600FF",lwd=3)
+########################
+hist(mall_data$income,breaks = 30,col="pink",freq = FALSE,xlab = "Income",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$income),sd=sd(mall_data$income)),add = TRUE,col="#6600FF",lwd=3)
+```
+
+
+
+ 
+```{r echo=FALSE, fig.height=7, fig.show='hold', fig.width=9, out.width="50%"}
+hist(mall_data$spending_score,breaks = 40,col="pink",freq = FALSE,xlab = "Spending Score",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$spending_score),sd=sd(mall_data$spending_score)),add = TRUE,col="#6600FF",lwd=3)
+########################
+hist(mall_data$purchase_frequency,breaks = 30,col="pink",freq = FALSE,xlab = "Purchase Frequency",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$purchase_frequency),sd=sd(mall_data$purchase_frequency)),add = TRUE,col="#6600FF",lwd=3)
+```
+
+ 
+ 
+ 
+ 
+```{r echo=FALSE, fig.height=7, fig.show='hold', fig.width=9, out.width="50%"}
+hist(mall_data$membership_years,breaks = 30,col="pink",freq = FALSE,xlab = "Membership Years",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$membership_years),sd=sd(mall_data$membership_years)),add = TRUE,col="#6600FF",lwd=3)
+######################
+hist(mall_data$last_purchase_amount,breaks = 38,col="pink",freq = FALSE,xlab = "Last Purchase Amount",main = "Histogram")
+grid(nx=NA,ny=NULL,lty = 2,col = "gray",lwd = 1)
+curve(dnorm(x,mean = mean(mall_data$last_purchase_amount),sd=sd(mall_data$last_purchase_amount)),add = TRUE,col="#6600FF",lwd=3)
+```
+ 
+
+
+\newpage
+
+# Plot for Qualitative Variable: 
+
+* Barchart:
+
+ 
+```{r echo=FALSE, fig.height=5, fig.width=10}
+library(ggplot2)
+ggplot(mall_data, aes(x = gender)) +
+  geom_bar(fill = "red", color = "black") +
+  labs(title = "Bar Chart of gender",
+       x = "Gender Group",
+       y = "Count") +
+  theme_minimal()
+
+
+```
+
+*
+
+
+```{r echo=FALSE, fig.height=5, fig.width=10}
+ggplot(mall_data, aes(x = preferred_category)) +
+  geom_bar(fill = "red", color = "white") +
+  labs(title = "Bar Chart of Preferred Category",
+       x = "Preferred Category Group",
+       y = "Count") +
+  theme_minimal()
+```
+\newpage
+
+# Applying K-Means Clustering Method:
+
+* First, The Algorithm only works on quantitative variables, so we will only select quantitative variables in the data.
+
+* After only select quantitative variables in the data, our Data is very large so, we will view the first Ten rows and the last Ten rows.
+
+```{r echo=FALSE}
+mmall_data=mall_data[,c(1,2,4,5,6,7,9)]
+library(knitr)
+kable(mmall_data[1:10,],caption = " Mall Customer Segmentation",col.names = c("id","age","Income","Spending Score","Membership years","Purchase frequency","Last purchase amount"))
+
+```
+
+
+
+* The last Ten rows:
+
+
+
+```{r echo=FALSE}
+library(knitr)
+kable(mmall_data[990:1000,],caption = " Mall Customer Segmentation",
+col.names = c("id","age","Income","Spending Score","Membership years","	Purchase frequency","Last purchase amount"),row.names = FALSE)
+
+```
+
+* Dimension for Data After selecting Quantitative variable :
+
+
+```{r echo=FALSE}
+fmall_data= mall_data[,c(2,4,5,6,7,9)]
+library(knitr)
+dim_table1 <- data.frame(Dimension = c("Number of Rows", "Number of Columns"),Value = dim(fmall_data))
+
+kable(dim_table1,caption = "Dimensions of the Dataset")
+```
+
+
+
+\newpage
+# Scale The Data:
+
+
+* Now scaling The Data to ensure that all variables are measured in the same unit, resulting in a fair division, and to prevent any single variable from having a greater impact on the division than others.
+
+
+* First Ten rows After scaling data :
+
+```{r echo=FALSE}
+fmall_data_scale= scale(fmall_data)
+library(knitr)
+kable(fmall_data_scale[1:10,],caption = "  Scale Mall Customer Segmentation Data",col.names = c("age","Income","Spending Score","Membership years","Purchase frequency","Last purchase amount"))
+
+
+```
+
+* last Ten rows After scaling data :
+
+
+```{r echo=FALSE}
+library(knitr)
+kable(fmall_data_scale[990:1000,],caption = "  Scale Mall Customer Segmentation Data",col.names = c("age","Income","Spending Score","Membership years","Purchase frequency","Last purchase amount"))
+```
+\newpage
+# Plot the scale data: 
+
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+library(ggplot2)
+
+
+pca_pre <- prcomp(fmall_data_scale)
+
+pca_df_pre <- data.frame(
+  PC1 = pca_pre$x[, 1],
+  PC2 = pca_pre$x[, 2]
+)
+
+ggplot(pca_df_pre, aes(PC1, PC2)) +
+  geom_point(color = "black", size = 2, alpha = 0.7) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Data Visualization Before Clustering (PCA)",
+    subtitle = "Before applying K-means",
+    x = "PC1",
+    y = "PC2" )
+
+
+```
+
+\newpage
+
+# Determining the appropriate number of clusters:
+  There are Two method for determining the appropriate number of clusters:
+
+* Silhouette Coefficient Method:
+The Silhouette Coefficient Method is an internal validation technique used to evaluate clustering quality and select the optimal number of clusters. It measures how well each observation fits within its assigned cluster compared to other clusters, with values ranging from -1 to 1. Higher average silhouette values indicate better cluster separation, and the number of clusters that maximizes this average is typically considered optimal.
+```{r echo=FALSE, fig.height=8, fig.width=8}
+library(cluster)
+
+set.seed(123)
+
+max_k <- 10
+sil_avg <- rep(NA, max_k)
+
+for (k in 2:max_k) {
+  km <- kmeans(fmall_data_scale, centers = k, nstart = 25)
+  sil <- silhouette(km$cluster, dist(fmall_data_scale))
+  sil_avg[k] <- mean(sil[, 3])
+}
+
+plot(1:max_k, sil_avg, type = "b", pch = 19,
+     xlab = "Number of clusters (k)",
+     ylab = "Average Silhouette Score",
+     main = "Silhouette Coefficient Method")
+
+
+```
+
+
+
+
+The Silhouette Coefficient analysis shows relatively low average silhouette values across all tested numbers of clusters, indicating weak separation among clusters. Although the highest silhouette score is observed at k = 10, the improvement over smaller values of k is marginal. Combined with the Elbow Method and PCA visualization, which suggest limited natural clustering structure, a five-cluster solution was selected to balance interpret ability and model simplicity
+
+
+
+
+\newpage
+* Elbow Method:
+  The Elbow Method is a heuristic technique used to determine the optimal number of clusters in         K_means clustering. It is based on calculating the within_cluster sum of squares (WSS) for different   numbers of clusters and plotting these values against the corresponding number of clusters. The       optimal number of clusters is identified at the point where the decrease in WSS begins to slow down   significantly, forming an “elbow” in the plot. This point represents a balance between minimizing     within_cluster variance and avoiding unnecessary model complexity.
+
+
+```{r echo=FALSE, fig.height=7, fig.width=8}
+set.seed(123)
+
+max_k = 10
+wss = numeric(max_k)
+
+for (k in 1:max_k) {
+  km = kmeans(fmall_data_scale, centers = k, nstart = 25)
+  wss[k] = km$tot.withinss}
+
+plot(
+  1:max_k, wss,
+  type = "b",
+  pch = 19,
+  col = "steelblue",
+  xlab = "Number of clusters (k)",
+  ylab = "Within-cluster sum of squares (WSS)",
+  main = "Elbow Method for K-means"
+)
+
+```
+
+The Elbow Method was applied to determine the optimal number of clusters by examining the within cluster sum of squares (WSS) for different values of k. The results show a sharp decrease in WSS up to k = 5, followed by a more gradual reduction for larger values of k.This indicates that k = 5 represents the elbow point, where further increasing the number of clusters yields diminishing returns. Therefore, five clusters were selected as the optimal solution.
+
+
+so,The optimal number of clusters was determined using a combination of the Elbow Method, Silhouette analysis, and PCA visualization. The Elbow Method indicated that five clusters represent the optimal balance between model complexity and within-cluster variance reduction. Although the Silhouette analysis showed relatively low values across different numbers of clusters, suggesting weak natural separation, five clusters were selected to maintain interpret ability and consistency with the Elbow criterion
+
+\newpage
+# Now Applying the Algorithm:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(cluster)
+kmeans_out= kmeans(fmall_data_scale, centers=5,nstart=50)
+#kmeans_out
+
+library(knitr)
+
+
+km_summary <- data.frame(
+  Metric = c(
+    "Number of clusters (k)",
+    "Total within-cluster SS (tot.withinss)",
+    "Between-cluster SS (betweenss)",
+    "Total SS (totss)",
+    "Explained variance (Between/Total)"
+  ),
+  Value = c(
+    length(unique(kmeans_out$cluster)),
+    round(kmeans_out$tot.withinss, 3),
+    round(kmeans_out$betweenss, 3),
+    round(kmeans_out$totss, 3),
+    paste0(round(100 * kmeans_out$betweenss / kmeans_out$totss, 2), "%")
+  )
+)
+
+kable(km_summary, caption = "K-means Summary Results")
+
+# 2) أحجام العناقيد بدل طباعة كل العناصر
+cluster_sizes <- as.data.frame(table(kmeans_out$cluster))
+colnames(cluster_sizes) <- c("Cluster", "Count")
+
+kable(cluster_sizes, caption = "Cluster Sizes (Number of Observations per Cluster)")
+
+```
+
+
+# Plot each cluster separately:
+
+
+
+
+
+
+
+```{r echo=FALSE, fig.height=5, fig.show='hold', fig.width=5, out.width="35%"}
+library(ggplot2)
+
+
+
+pca <- prcomp(fmall_data_scale)
+
+
+plot_df <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = kmeans_out$cluster
+)
+
+
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[,1],
+  PC2 = centers_pca[,2]
+)
+
+ggplot(plot_df[plot_df$cluster == 1, ], aes(PC1, PC2)) +
+  geom_point(color = "#FFEB3B", size = 2.5, alpha = 0.7) +
+  geom_point(
+    data = centers_df[1, ],
+    aes(PC1, PC2),
+    color = "black",
+    size = 6
+  ) +
+  theme_minimal() +
+  labs(title = "Cluster 1", x = "PC1", y = "PC2")
+########
+# PCA
+pca <- prcomp(fmall_data_scale)
+
+ 
+plot_df <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = kmeans_out$cluster
+)
+
+
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[,1],
+  PC2 = centers_pca[,2]
+)
+
+ggplot(plot_df[plot_df$cluster == 2, ], aes(PC1, PC2)) +
+  geom_point(color = "red", size = 2.5, alpha = 0.7) +
+  geom_point(
+    data = centers_df[1, ],
+    aes(PC1, PC2),
+    color = "black",
+    size = 6
+  ) +
+  theme_minimal() +
+  labs(title = "Cluster 2", x = "PC1", y = "PC2")
+######################################
+# PCA
+pca <- prcomp(fmall_data_scale)
+
+
+plot_df <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = kmeans_out$cluster
+)
+
+
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[,1],
+  PC2 = centers_pca[,2]
+)
+
+ggplot(plot_df[plot_df$cluster == 3, ], aes(PC1, PC2)) +
+  geom_point(color = "blue", size = 2.5, alpha = 0.7) +
+  geom_point(
+    data = centers_df[1, ],
+    aes(PC1, PC2),
+    color = "black",
+    size = 6
+  ) +
+  theme_minimal() +
+  labs(title = "Cluster 3", x = "PC1", y = "PC2")
+###########################################
+pca <- prcomp(fmall_data_scale)
+
+
+plot_df <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = kmeans_out$cluster
+)
+
+
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[,1],
+  PC2 = centers_pca[,2]
+)
+
+ggplot(plot_df[plot_df$cluster == 4, ], aes(PC1, PC2)) +
+  geom_point(color = "#7f7f7f", size = 2.5, alpha = 0.7) +
+  geom_point(
+    data = centers_df[1, ],
+    aes(PC1, PC2),
+    color = "black",
+    size = 6
+  ) +
+  theme_minimal() +
+  labs(title = "Cluster 4", x = "PC1", y = "PC2")
+##############################################
+# PCA
+pca <- prcomp(fmall_data_scale)
+
+
+plot_df <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = kmeans_out$cluster
+)
+
+
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[,1],
+  PC2 = centers_pca[,2]
+)
+
+ggplot(plot_df[plot_df$cluster == 5, ], aes(PC1, PC2)) +
+  geom_point(color = "#66A61E", size = 2.5, alpha = 0.7) +
+  geom_point(
+    data = centers_df[1, ],
+    aes(PC1, PC2),
+    color = "black",
+    size = 6
+  ) +
+  theme_minimal() +
+  labs(title = "Cluster 5", x = "PC1", y = "PC2")
+```
+
+
+
+# Plot Final Results For  Applting K_means Method:
+
+
+```{r echo=FALSE, fig.height=12, fig.width=16}
+library(ggplot2)
+
+# PCA
+pca <- prcomp(fmall_data_scale)
+
+
+plot_df <- data.frame(
+  PC1 = pca$x[, 1],
+  PC2 = pca$x[, 2],
+  cluster = factor(kmeans_out$cluster)
+)
+
+ 
+centers_pca <- predict(pca, kmeans_out$centers)
+centers_df <- data.frame(
+  PC1 = centers_pca[, 1],
+  PC2 = centers_pca[, 2]
+)
+
+cluster_colors <- c(
+  "#FFEB3B",
+  "red",
+  "blue",
+  "#7f7f7f",
+  "#66A61E"
+)
+
+ggplot(plot_df, aes(PC1, PC2, color = cluster)) +
+  geom_point(size = 2.7, alpha = 0.75) +
+  geom_point(
+    data = centers_df,
+    aes(PC1, PC2),
+    color = "black",
+    size = 3,
+    shape = 16
+  ) +
+  scale_color_manual(values = cluster_colors) +
+  theme_minimal(base_size = 16)
+```
+
+
+* Although K-means successfully partitioned the data into five clusters, 
+the PCA visualization and low silhouette scores indicate substantial overlap among clusters. 
+This suggests that the underlying data structure does not exhibit strong natural clustering, 
+and the results should be interpreted with caution.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
